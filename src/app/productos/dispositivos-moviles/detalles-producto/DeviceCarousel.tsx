@@ -13,10 +13,19 @@ import { getCloudinaryUrl } from "@/lib/cloudinary";
 // solo la actual, y un hook no se puede llamar dentro de un map.
 const DETAIL_SIZES = "(max-width: 768px) 100vw, 1000px";
 
+// Tope de portadas de otras variantes a precargar. Con muchos tamaños (un TV
+// puede traer 8) precargarlas todas gastaría datos en fotos que quizá no se
+// miren; ocho cubre el catálogo real sin pasarse.
+const MAX_VARIANT_PRELOADS = 8;
+
 interface DeviceCarouselProps {
   alt: string;
   imagePreviewUrl?: string;
   imageDetailsUrls?: string[];
+  /** Portada de TODAS las variantes del producto, en el orden del API. Las que
+   *  no son la actual se montan ocultas para que al cambiar de tamaño o color
+   *  la foto ya esté descargada en vez de empezar a pedirse en ese momento. */
+  allVariantPreviews?: string[];
   onImageClick?: (images: (string | StaticImageData)[], currentIndex: number) => void;
 }
 
@@ -27,6 +36,7 @@ const DeviceCarousel: React.FC<DeviceCarouselProps> = ({
   alt,
   imagePreviewUrl,
   imageDetailsUrls = [],
+  allVariantPreviews = [],
   onImageClick,
 }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -71,6 +81,26 @@ const DeviceCarousel: React.FC<DeviceCarouselProps> = ({
   useEffect(() => {
     setCurrentImageIndex(0);
   }, [images]);
+
+  // Misma razón que arriba para la clave: el array llega nuevo en cada render.
+  const previewsKey = allVariantPreviews.filter(Boolean).join("|");
+
+  // Portadas de las OTRAS variantes. Al cambiar de tamaño o color la galería
+  // recibe una lista de fotos completamente nueva, que hasta ese momento nadie
+  // había pedido: por eso quedaba en blanco aunque el carrusel de la variante
+  // actual ya estuviera resuelto.
+  const variantPreloads = useMemo(() => {
+    if (!previewsKey) return [];
+    const yaVisibles = new Set(optimizedSrcs);
+    const out: string[] = [];
+    for (const url of previewsKey.split("|")) {
+      const optimizada = getCloudinaryUrl(url, "product-detail");
+      if (yaVisibles.has(optimizada) || out.includes(optimizada)) continue;
+      out.push(optimizada);
+      if (out.length >= MAX_VARIANT_PRELOADS) break;
+    }
+    return out;
+  }, [previewsKey, optimizedSrcs]);
 
   const goToPrevious = () => {
     setCurrentImageIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
@@ -147,6 +177,25 @@ const DeviceCarousel: React.FC<DeviceCarouselProps> = ({
                 priority={index === 0}
                 loading={index === 0 ? undefined : "eager"}
                 aria-hidden={index !== currentImageIndex}
+              />
+            ))}
+            {/* Nunca se ven: están montadas solo para que el navegador las baje.
+                Se montan como <Image> y no con una precarga a mano porque
+                next/image sirve por /_next/image?url=...&w=...; precargar la URL
+                de Cloudinary directo descargaría otro archivo y no serviría.
+                fetchPriority low para no competir con la foto que se está
+                mirando ahora. */}
+            {variantPreloads.map((src) => (
+              <Image
+                key={`preload-${src}`}
+                src={src}
+                alt=""
+                fill
+                className="object-contain object-center opacity-0 pointer-events-none"
+                sizes={DETAIL_SIZES}
+                loading="eager"
+                fetchPriority="low"
+                aria-hidden
               />
             ))}
           </div>
