@@ -2,11 +2,16 @@
 // Componente reutilizable para mostrar la imagen principal del dispositivo y navegación
 'use client';
 
-import React, { useState } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import Image, { StaticImageData } from "next/image";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import emptyImg from "@/img/empty.jpeg";
-import { useCloudinaryImage } from "@/hooks/useCloudinaryImage";
+import { getCloudinaryUrl } from "@/lib/cloudinary";
+
+// Espejo del `sizes` que useCloudinaryImage genera para 'product-detail'.
+// Aquí no usamos el hook porque necesitamos la URL de TODAS las imágenes, no
+// solo la actual, y un hook no se puede llamar dentro de un map.
+const DETAIL_SIZES = "(max-width: 768px) 100vw, 1000px";
 
 interface DeviceCarouselProps {
   alt: string;
@@ -26,31 +31,47 @@ const DeviceCarousel: React.FC<DeviceCarouselProps> = ({
 }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
+  // Clave estable del contenido: el padre reconstruye el array en cada render,
+  // así que comparar por referencia haría inútil el useMemo.
+  const detailsKey = imageDetailsUrls.filter((url) => url && url.trim() !== "").join("|");
+
   // Construir array de imágenes: imagePreviewUrl primero, luego imageDetailsUrls
-  const images: (string | StaticImageData)[] = [];
+  const images = useMemo<(string | StaticImageData)[]>(() => {
+    const list: (string | StaticImageData)[] = [];
 
-  // Agregar imagePreviewUrl como primera imagen si existe y no está vacío
-  if (imagePreviewUrl && imagePreviewUrl.trim() !== '') {
-    images.push(imagePreviewUrl);
-  }
+    // Agregar imagePreviewUrl como primera imagen si existe y no está vacío
+    if (imagePreviewUrl && imagePreviewUrl.trim() !== "") {
+      list.push(imagePreviewUrl);
+    }
 
-  // Agregar imageDetailsUrls, filtrando URLs vacías
-  const validDetailUrls = imageDetailsUrls.filter(url => url && url.trim() !== '');
-  images.push(...validDetailUrls);
+    // Agregar imageDetailsUrls, filtrando URLs vacías
+    if (detailsKey) {
+      list.push(...detailsKey.split("|"));
+    }
 
-  // Si no hay imágenes válidas del backend, usar empty.jpg
-  if (images.length === 0) {
-    images.push(emptyImg);
-  }
+    // Si no hay imágenes válidas del backend, usar empty.jpg
+    return list.length > 0 ? list : [emptyImg];
+  }, [imagePreviewUrl, detailsKey]);
 
-  // Obtener imagen actual optimizada con Cloudinary para detalles de producto
-  const currentImageSrc = images[currentImageIndex];
-  const cloudinaryImage = useCloudinaryImage({
-    src: typeof currentImageSrc === "string" ? currentImageSrc : currentImageSrc.src,
-    transformType: "product-detail",
-    responsive: true,
-  });
-  
+  // URL optimizada de CADA imagen, no solo la actual: todas se montan a la vez
+  // para que el navegador ya las tenga cuando el comprador pase de foto.
+  const optimizedSrcs = useMemo(
+    () =>
+      images.map((image) =>
+        getCloudinaryUrl(
+          typeof image === "string" ? image : image.src,
+          "product-detail"
+        )
+      ),
+    [images]
+  );
+
+  // Al cambiar de color o tamaño llega otra lista; si la nueva es más corta, el
+  // índice viejo apuntaría fuera del array.
+  useEffect(() => {
+    setCurrentImageIndex(0);
+  }, [images]);
+
   const goToPrevious = () => {
     setCurrentImageIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
   };
@@ -105,27 +126,30 @@ const DeviceCarousel: React.FC<DeviceCarouselProps> = ({
           onClick={() => onImageClick?.(images, currentImageIndex)}
           aria-label={`Mostrar imagen ${currentImageIndex + 1} de ${alt}`}
         >
-          {/* Use `fill` so the image is positioned/centered by CSS and won't be cropped; ensure object-contain + object-center */}
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentImageIndex}
-              className="relative w-full h-full"
-              initial={{ opacity: 0, scale: 0.98 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.98 }}
-              transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
-            >
+          {/* Todas las fotos quedan montadas y se cruzan por opacidad. Antes se
+              desmontaba la anterior y se montaba la siguiente (AnimatePresence
+              con mode="wait"): la foto nueva empezaba a descargarse recién al
+              pasar, y el desvanecimiento de la vieja terminaba ANTES de que la
+              nueva entrara, dejando el fondo gris a la vista aunque la imagen ya
+              estuviera en caché.
+              `fill` + object-contain para centrar por CSS sin recortar. */}
+          <div className="relative w-full h-full">
+            {optimizedSrcs.map((src, index) => (
               <Image
-                src={cloudinaryImage.src}
-                alt={`${alt} - Imagen ${currentImageIndex + 1}`}
+                key={`${src}-${index}`}
+                src={src}
+                alt={`${alt} - Imagen ${index + 1}`}
                 fill
-                className="object-contain object-center"
-                sizes={cloudinaryImage.imageProps.sizes}
-                priority={currentImageIndex === 0}
-                loading={currentImageIndex === 0 ? "eager" : "lazy"}
+                className={`object-contain object-center transition-opacity duration-300 ease-out ${
+                  index === currentImageIndex ? "opacity-100" : "opacity-0"
+                }`}
+                sizes={DETAIL_SIZES}
+                priority={index === 0}
+                loading={index === 0 ? undefined : "eager"}
+                aria-hidden={index !== currentImageIndex}
               />
-            </motion.div>
-          </AnimatePresence>
+            ))}
+          </div>
         </button>
       </div>
       
