@@ -115,6 +115,46 @@ export async function getTop10Products(): Promise<SearchProductsGroupedResult> {
 /**
  * Obtiene productos por categoría con filtros opcionales
  */
+/** Franjas de producto de la home, tal como las nombra el dashboard. */
+export type SeccionHome = "celulares" | "tv" | "electro";
+
+export type ProductosHomeConfig = Record<SeccionHome, string[]>;
+
+const CONFIG_HOME_VACIA: ProductosHomeConfig = {
+  celulares: [],
+  tv: [],
+  electro: [],
+};
+
+/**
+ * Curaduría de la home configurada desde el dashboard: por cada franja, los
+ * codigo_market activos en el orden elegido. Es la MISMA configuración que
+ * consume la tienda web, para que el quiosco no muestre otra cosa.
+ *
+ * Ante cualquier fallo devuelve las tres franjas vacías y la home cae a su
+ * comportamiento de siempre: no puede quedarse sin productos por esto.
+ *
+ * Sin caché de datos a propósito: el caché por defecto es de 60 s, igual que
+ * el ISR de la página, y los dos se sumarían.
+ */
+export async function getProductosHomeConfig(): Promise<ProductosHomeConfig> {
+  try {
+    // serverFetch YA desenvuelve las respuestas { success, data }.
+    const res = await serverFetch<Partial<ProductosHomeConfig>>(
+      "/api/products/productos-home/activos",
+      { next: { revalidate: 0 } }
+    );
+
+    return {
+      celulares: res?.celulares ?? [],
+      tv: res?.tv ?? [],
+      electro: res?.electro ?? [],
+    };
+  } catch {
+    return CONFIG_HOME_VACIA;
+  }
+}
+
 export async function getProductsByCategory(
   categoria: string,
   menuUuid?: string,
