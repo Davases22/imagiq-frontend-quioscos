@@ -8,6 +8,7 @@ interface StickyImageContainerProps {
   readonly productName: string;
   readonly imagePreviewUrl?: string;
   readonly imageDetailsUrls?: string[];
+  readonly allVariantPreviews?: string[];
   readonly onImageClick: (images: (string | StaticImageData)[], currentIndex: number) => void;
 }
 
@@ -19,6 +20,7 @@ export default function StickyImageContainer({
   productName,
   imagePreviewUrl,
   imageDetailsUrls,
+  allVariantPreviews,
   onImageClick,
 }: StickyImageContainerProps) {
   return (
@@ -26,6 +28,7 @@ export default function StickyImageContainer({
       alt={productName}
       imagePreviewUrl={imagePreviewUrl}
       imageDetailsUrls={imageDetailsUrls}
+      allVariantPreviews={allVariantPreviews}
       onImageClick={onImageClick}
     />
   );

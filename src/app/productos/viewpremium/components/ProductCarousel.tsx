@@ -1,7 +1,21 @@
 "use client";
 
-import React, { forwardRef, useState, useRef } from "react";
+import React, { forwardRef, useState, useRef, useEffect } from "react";
 import { ProductCardProps } from "@/app/productos/components/ProductCard";
+
+// Tope de fotos a precargar. Los productos premium pueden traer muchos assets y
+// precargarlos todos gastaría datos en material que quizá no se mire.
+const MAX_PRELOAD = 12;
+
+function isVideoUrl(src: string | undefined): boolean {
+  if (!src) return false;
+  return (
+    src.includes(".webm") ||
+    src.includes(".mp4") ||
+    src.includes(".mov") ||
+    src.includes("video/upload")
+  );
+}
 
 interface ProductCarouselProps {
   product: ProductCardProps;
@@ -126,6 +140,26 @@ const ProductCarousel = forwardRef<HTMLDivElement, ProductCarouselProps>(({
   const touchStartX = useRef<number | null>(null);
   const touchEndX = useRef<number | null>(null);
 
+  // Claves por contenido: el padre reconstruye estos arrays en cada render, así
+  // que comparar por referencia dispararía la precarga una y otra vez.
+  const premiumKey = premiumImages.join("|");
+  const productKey = productImages.join("|");
+
+  // Sin esto, cada foto empieza a descargarse recién en el momento en que se
+  // pasa a ella y el carrusel se queda vacío mientras llega. Los videos se
+  // excluyen a propósito: pesan demasiado para traerlos de entrada.
+  useEffect(() => {
+    const urls = [...new Set([...premiumImages, ...productImages])]
+      .filter((url) => url && !isVideoUrl(url))
+      .slice(0, MAX_PRELOAD);
+
+    urls.forEach((url) => {
+      const img = new window.Image();
+      img.src = url;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [premiumKey, productKey]);
+
   const handleVideoStart = () => {
     setIsVideoPlaying(true);
   };
@@ -183,12 +217,7 @@ const ProductCarousel = forwardRef<HTMLDivElement, ProductCarouselProps>(({
 
           return currentImages.length > 0 ? (() => {
             const currentSrc = currentImages[currentImageIndex];
-            const isVideo = currentSrc && (
-              currentSrc.includes('.webm') ||
-              currentSrc.includes('.mp4') ||
-              currentSrc.includes('.mov') ||
-              currentSrc.includes('video/upload')
-            );
+            const isVideo = isVideoUrl(currentSrc);
 
             return (
             <div
@@ -223,9 +252,12 @@ const ProductCarousel = forwardRef<HTMLDivElement, ProductCarouselProps>(({
                     );
                   } else {
                     return (
+                      // Sin `key` por src a propósito: forzaba a React a montar un
+                      // <img> NUEVO en cada cambio, y un nodo recién montado nace
+                      // vacío. Reutilizando el mismo nodo el navegador deja la foto
+                      // anterior pintada hasta que la siguiente está lista.
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
-                        key={currentSrc}
                         src={currentSrc}
                         alt={`${product.name} - ${currentImageSet === 'premium' ? 'Premium' : 'Producto'} ${currentImageIndex + 1}`}
                         className="w-full h-full object-contain"
@@ -338,15 +370,17 @@ const ProductCarousel = forwardRef<HTMLDivElement, ProductCarouselProps>(({
                 const currentSrc = productImages[currentImageIndex % productImages.length];
 
                 return (
-                  // eslint-disable-next-line @next/next/no-img-element
                   <div className="w-full h-full flex items-center justify-center">
+                    {/* Mismo criterio que el carrusel de arriba: sin `key` por src
+                        para no remontar el nodo, y sin lazy — esta foto está en
+                        pantalla desde que carga la página, así que diferirla solo
+                        retrasaba su aparición. */}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      key={currentSrc}
                       src={currentSrc}
                       alt={`${product.name} - ${selectedColor} ${(currentImageIndex % productImages.length) + 1}`}
                       className="w-full h-full object-contain"
                       style={{ maxWidth: "100%", maxHeight: "100%" }}
-                      loading="lazy"
                       onError={(e) => {
                         console.error('Error loading image:', currentSrc, e);
                       }}
