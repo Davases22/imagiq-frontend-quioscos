@@ -21,7 +21,7 @@ import { useProduct } from "@/features/products/useProducts";
 import FlixmediaPlayer from "@/components/FlixmediaPlayer";
 import MultimediaBottomBar from "@/components/MultimediaBottomBar";
 import { usePrefetchProduct } from "@/hooks/usePrefetchProduct";
-import { hasPremiumContent, preloadFlixmediaScriptEarly } from "@/lib/flixmedia";
+import { hasPremiumContent, preloadFlixmediaScriptEarly, flixmediaCandidatesForVariant } from "@/lib/flixmedia";
 import MultimediaQuickNavBar from "./MultimediaQuickNavBar";
 
 // Skeleton de carga mejorado
@@ -194,12 +194,23 @@ export default function MultimediaPage({
     });
   }
 
-  // SOLO usar el campo skuflixmedia - NO usar otros SKUs
-  // Si no hay skuflixmedia, intentar usar el SKU normal del producto como fallback
-  const productSku = selectedProductData?.skuflixmedia
-    ? selectedProductData.skuflixmedia
-    : (product?.skuflixmedia || product?.apiProduct?.skuflixmedia?.[0] ||
-       selectedProductData?.sku || allSkus[0] || null);
+  // MPN para Flixmedia: candidatos de la variante seleccionada resueltos contra el
+  // API (skuflixmedia / SKU padre / sku, ver flixmediaCandidatesForVariant), igual
+  // que la web. Para bundles como The Frame (F-QN55LS03HEKB) Flixmedia solo conoce
+  // el padre (QN55LS03HEKXZL): con el padre primero carga; con el bundle salta a view.
+  const productSku = ((): string | null => {
+    const api = product?.apiProduct;
+    const wanted = (selectedProductData?.sku || "").trim().toLowerCase();
+    const i = api && wanted ? (api.sku || []).findIndex((s) => (s || "").trim().toLowerCase() === wanted) : -1;
+    const fromVariant = i >= 0 && api
+      ? flixmediaCandidatesForVariant({ skuflixmedia: api.skuflixmedia?.[i], descGeneral: api.descGeneral?.[i], sku: api.sku[i] })
+      : flixmediaCandidatesForVariant({ skuflixmedia: selectedProductData?.skuflixmedia, sku: selectedProductData?.sku });
+    if (fromVariant.length > 0) return fromVariant.join(",");
+    const fromProduct = api
+      ? flixmediaCandidatesForVariant({ skuflixmedia: api.skuflixmedia?.[0], descGeneral: api.descGeneral?.[0], sku: api.sku?.[0] })
+      : [];
+    return fromProduct.join(",") || product?.skuflixmedia || allSkus[0] || null;
+  })();
 
   // EAN solo como respaldo si hay skuflixmedia pero se necesita EAN
   const productEan = productSku ? (allEans.length > 0 ? allEans[0] : null) : null;
@@ -340,17 +351,21 @@ export default function MultimediaPage({
       <div
         className="flex-1 pt-[55px] xl:pt-[70px] bg-white"
       >
-        <FlixmediaPlayer
-          mpn={productSku}
-          ean={productEan}
-          productName={displayProductName}
-          productId={id}
-          segmento={segmento}
-          apiProduct={product?.apiProduct}
-          productColors={product?.colors}
-          skipMatchApi={true}
-          className=""
-        />
+        {/* No montar el player hasta que useProduct termine: así el primer intento ya
+            lleva el SKU padre primero y no dispara loader.js con el SKU guardado. */}
+        {!loading && (
+          <FlixmediaPlayer
+            mpn={productSku}
+            ean={productEan}
+            productName={displayProductName}
+            productId={id}
+            segmento={segmento}
+            apiProduct={product?.apiProduct}
+            productColors={product?.colors}
+            skipMatchApi={true}
+            className=""
+          />
+        )}
       </div>
     </div>
   );
