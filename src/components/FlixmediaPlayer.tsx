@@ -301,6 +301,20 @@ function FlixmediaPlayerComponent({
       }
       setFailureKind(kind);
     };
+    // NOSHOW: en modo match redirige ya, como siempre. En multimedia el MPN puede
+    // ser provisional (la página monta el player antes de que responda el API y,
+    // sin el SKU padre, Flixmedia contesta NOSHOW para bundles como The Frame):
+    // se difiere el redirect y, si el mpn cambia, el cleanup del effect lo cancela.
+    const redirigirPorNoshow = () => {
+      if (preventRedirectRef.current) return;
+      if (!skipMatchApiRef.current) {
+        redirectToView();
+        return;
+      }
+      retryTimeoutId = setTimeout(() => {
+        if (isMounted) redirectToView();
+      }, RETRY_DELAY_MS);
+    };
 
     const init = async () => {
       let targetMpn: string | null = null;
@@ -448,7 +462,7 @@ function FlixmediaPlayerComponent({
             setHasContent(false);
             setHasFlixError(true);
             setFailureKind("noshow");
-            if (!preventRedirectRef.current) redirectToView();
+            redirigirPorNoshow();
           }
 
           if (fn) fn();
@@ -609,7 +623,7 @@ function FlixmediaPlayerComponent({
               setHasContent(false);
               setHasFlixError(true);
               setFailureKind("noshow");
-              if (!preventRedirectRef.current) redirectToView();
+              redirigirPorNoshow();
             }, 'noshow');
           }
         } catch { /* flixJsCallbacks may have been replaced */ }
