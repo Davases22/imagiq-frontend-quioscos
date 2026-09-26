@@ -348,7 +348,7 @@ export default function MultimediaPage({
           segmento={segmento}
           apiProduct={product?.apiProduct}
           productColors={product?.colors}
-          skipMatchApi={false}
+          skipMatchApi={true}
           className=""
         />
       </div>
