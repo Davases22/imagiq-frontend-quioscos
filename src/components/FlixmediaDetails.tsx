@@ -17,6 +17,8 @@ declare global {
       // Dual API: Flixmedia llama con (type) para notificar, o se registra con (fn, type)
       setLoadCallback: (typeOrFn: unknown, type?: string) => void;
       loadService: (type: string) => void;
+      // Registrado por FlixmediaPlayer para los botones "comprar" de Flixmedia.
+      flixCartClick?: () => void;
     };
   }
 }
