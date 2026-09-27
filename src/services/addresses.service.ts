@@ -10,7 +10,7 @@ import { apiGet, apiPost, apiPut, apiDelete } from "@/lib/api-client";
 
 /** Mensaje que ve el cliente cuando intenta guardar una dirección sin haber dado su correo. */
 export const MENSAJE_SIN_USUARIO =
-  "Para guardar una dirección primero ingresa tu correo en el paso anterior.";
+  "Para guardar una dirección primero inicia sesión o ingresa tu correo en el checkout.";
 
 export class SinUsuarioError extends Error {
   readonly code = "USUARIO_INVALIDO" as const;
