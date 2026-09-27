@@ -6,6 +6,7 @@ import { syncAddress } from "@/lib/addressSync";
 import { useAuthContext } from "@/features/auth/context";
 import { apiPost } from "@/lib/api-client";
 import { safeGetLocalStorage } from "@/lib/localStorage";
+import { MENSAJE_SIN_USUARIO } from "@/services/addresses.service";
 
 interface NearbyLocationButtonProps {
   onAddressAdded?: (address: Address) => void;
@@ -27,38 +28,12 @@ export function NearbyLocationButton({ onAddressAdded, className }: NearbyLocati
    *
    * Si no existe usuario en imagiq_user, genera un guest ID temporal
    */
-  const getUserId = (): string => {
-    if (user?.id) {
-      console.log("✅ Cerca de mí: Usando user.id del context:", user.id);
-      return user.id;
-    }
-
-    // Usuario no logueado: usar la MISMA lógica que addressesService
-    // Obtener del localStorage imagiq_user (creado en Step2)
+  const getUserId = (): string | null => {
+    if (user?.id) return user.id;
+    // Usuario no logueado: imagiq_user (id o correo; el backend resuelve el
+    // correo). Nunca un id inventado: sin usuario se pide el correo.
     const userInfo = safeGetLocalStorage<{ id?: string; email?: string }>("imagiq_user", {});
-
-    if (userInfo.id) {
-      console.log("✅ Cerca de mí: Usando userInfo.id desde imagiq_user:", userInfo.id);
-      return userInfo.id;
-    }
-
-    if (userInfo.email) {
-      console.log("✅ Cerca de mí: Usando userInfo.email desde imagiq_user:", userInfo.email);
-      return userInfo.email;
-    }
-
-    // Si no hay usuario en imagiq_user, generar un guest ID temporal
-    // Este ID se usará hasta que el usuario complete Step 2
-    let guestId = localStorage.getItem("imagiq_guest_id");
-    if (!guestId) {
-      guestId = `guest_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
-      localStorage.setItem("imagiq_guest_id", guestId);
-      console.log("🆕 Cerca de mí: Nuevo guest ID generado:", guestId);
-    } else {
-      console.log("✅ Cerca de mí: Usando guest ID existente:", guestId);
-    }
-
-    return guestId;
+    return userInfo.id || userInfo.email || null;
   };
 
   /**
@@ -77,6 +52,11 @@ export function NearbyLocationButton({ onAddressAdded, className }: NearbyLocati
 
       // 2. Obtener ID del usuario (logueado o guest)
       const userId = getUserId();
+      if (!userId) {
+        setError(MENSAJE_SIN_USUARIO);
+        setIsLoading(false);
+        return;
+      }
 
       // 3. Crear dirección con geolocalización (TODO en una sola petición)
       console.log("🚀 Creando dirección con geolocalización...");

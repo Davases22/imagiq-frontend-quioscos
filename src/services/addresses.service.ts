@@ -8,6 +8,18 @@ import type { Address } from "@/types/address";
 import { safeGetLocalStorage } from "@/lib/localStorage";
 import { apiGet, apiPost, apiPut, apiDelete } from "@/lib/api-client";
 
+/** Mensaje que ve el cliente cuando intenta guardar una dirección sin haber dado su correo. */
+export const MENSAJE_SIN_USUARIO =
+  "Para guardar una dirección primero ingresa tu correo en el paso anterior.";
+
+export class SinUsuarioError extends Error {
+  readonly code = "USUARIO_INVALIDO" as const;
+  constructor() {
+    super(MENSAJE_SIN_USUARIO);
+    this.name = "SinUsuarioError";
+  }
+}
+
 /**
  * Interface para crear una nueva dirección
  */
@@ -116,22 +128,10 @@ export class AddressesService {
         requestData.usuarioId = kioskUser.userId;
         console.log(`🏪 addressesService.createAddress: Usando ${kioskUser.source}: ${kioskUser.userId}`);
       } else {
-        // Si no hay usuario identificado, usar guest ID temporal
-        if (typeof window !== 'undefined') {
-          let guestId = localStorage.getItem("imagiq_guest_id");
-          if (!guestId) {
-            guestId = `guest_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
-            localStorage.setItem("imagiq_guest_id", guestId);
-            console.log("🆕 addressesService: Nuevo guest ID generado:", guestId);
-          } else {
-            console.log("✅ addressesService: Usando guest ID existente:", guestId);
-          }
-          requestData.usuarioId = guestId;
-        } else {
-          throw new Error(
-            "No se encontró información del usuario. Por favor, inicia sesión nuevamente."
-          );
-        }
+        // Sin usuario identificado no se inventa un "guest_<fecha>_<aleatorio>":
+        // ese valor no corresponde a nadie, addresses-ms lo rechaza (usuarios.id
+        // es UUID) y el cliente veía un 500. Se pide el correo.
+        throw new SinUsuarioError();
       }
 
       // Verificar si es la primera dirección del usuario

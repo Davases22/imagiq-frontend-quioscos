@@ -846,7 +846,11 @@ export default function AddNewAddressForm({
       console.error("Error al agregar dirección:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Error desconocido";
-      setErrors({ submit: `Error al guardar la dirección: ${errorMessage}` });
+      // Sin usuario (local) o rechazado por el backend con código: el mensaje ya
+      // le dice al cliente qué hacer; no hace falta el prefijo genérico.
+      const codigo = (error as { code?: string } | null)?.code;
+      const esUsuario = codigo === "USUARIO_INVALIDO" || codigo === "USUARIO_NO_EXISTE";
+      setErrors({ submit: esUsuario ? errorMessage : `Error al guardar la dirección: ${errorMessage}` });
     } finally {
       setIsLoading(false);
     }
