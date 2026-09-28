@@ -1173,7 +1173,8 @@ export default function AddNewAddressForm({
   const formContent = (
     <form onSubmit={handleSubmit} className="space-y-4">
       {/* Título, indicador de pasos y botón continuar */}
-      <div className="flex items-center justify-between mb-6 gap-4">
+      {/* sticky: "Continuar" y "usar mi ubicación" siempre a la vista al recorrer el formulario */}
+      <div className="sticky top-0 z-30 bg-white flex items-center justify-between gap-4 pt-1 pb-3 mb-3 before:absolute before:inset-x-0 before:bottom-full before:h-6 before:bg-white">
         {/* Título + Indicador de pasos */}
         <div className="flex items-center gap-4">
           {/* Título (si se proporciona) */}
