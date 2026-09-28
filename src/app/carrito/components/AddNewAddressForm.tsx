@@ -1269,7 +1269,9 @@ export default function AddNewAddressForm({
       
       {/* PASO 1: Datos esenciales de la dirección */}
       {currentStep === 1 && (
-        <div className="space-y-4">
+        // flex-col (en vez de space-y-4) para poder reordenar con `order`: en pantallas
+        // angostas el mapa va al final, después de las instrucciones de entrega.
+        <div className="flex flex-col gap-4">
           {/* Grid de campos: Departamento y Ciudad siempre en la misma fila */}
           <div className="grid grid-cols-2 gap-2 sm:gap-4">
           {/* Departamento */}
@@ -1553,9 +1555,13 @@ export default function AddNewAddressForm({
           )}
         </div>
 
-        {/* Mapa 3D - mostrar cuando se selecciona una dirección */}
+        {/* Mapa 3D - mostrar cuando se selecciona una dirección.
+            En pantallas angostas se envía al final (order-last): apilado, el mapa
+            quedaba entre el buscador y los últimos campos y había que deslizar el
+            dedo sobre él para llegar a "Tipo de propiedad" e "Instrucciones de
+            entrega". En pantallas anchas se mantiene el orden original. */}
         {selectedAddress && (
-          <div className="mt-4">
+          <div className="order-last md:order-none">
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Ubicación de dirección de envío en el mapa
             </label>
