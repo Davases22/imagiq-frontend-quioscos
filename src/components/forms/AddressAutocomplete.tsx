@@ -201,16 +201,11 @@ export function AddressAutocomplete({
         const rect = inputRef.current?.getBoundingClientRect();
         if (!rect) return;
 
-        // Alto visible real: con el teclado abierto, visualViewport es bastante
-        // menor que window.innerHeight.
-        const altoVisible = window.visualViewport?.height ?? window.innerHeight;
-        const espacioAbajo = altoVisible - rect.bottom;
-        const alto = dropdownRef.current?.offsetHeight ?? 240;
-        // Si abajo no cabe (teclado), se abre hacia arriba del campo.
-        const arriba = espacioAbajo < Math.min(alto, 160) && rect.top > espacioAbajo;
-
+        // La lista va SIEMPRE justo debajo del campo de dirección, también con el
+        // teclado abierto: si se abre hacia arriba termina tapando los campos de
+        // más arriba, que es justo lo que se quería evitar.
         const pos = {
-          top: arriba ? Math.max(8, rect.top - alto - 4) : rect.bottom + 4,
+          top: rect.bottom + 4,
           left: rect.left,
           width: rect.width
         };

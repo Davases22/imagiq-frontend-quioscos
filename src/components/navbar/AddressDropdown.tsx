@@ -504,11 +504,11 @@ const AddressDropdown: React.FC<AddressDropdownProps> = React.memo(({
         {/* Modal para agregar dirección (usuarios autenticados sin direcciones) */}
         {showModal && isMounted && createPortal(
           <div
-            className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/50"
+            className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-[2px]"
             onClick={() => setShowModal(false)}
           >
             <div
-              className="bg-white rounded-lg shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col"
+              className="bg-white rounded-lg shadow-2xl w-full max-w-3xl max-h-[85vh] supports-[height:100dvh]:max-h-[85dvh] flex flex-col"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 flex-shrink-0">
@@ -765,11 +765,11 @@ const AddressDropdown: React.FC<AddressDropdownProps> = React.memo(({
       {/* Este modal se renderiza siempre al final del componente para todos los casos */}
       {showModal && isMounted && createPortal(
         <div
-          className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/50"
+          className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-[2px]"
           onClick={() => setShowModal(false)}
         >
           <div
-            className="bg-white rounded-lg shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col"
+            className="bg-white rounded-lg shadow-2xl w-full max-w-3xl max-h-[85vh] supports-[height:100dvh]:max-h-[85dvh] flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 flex-shrink-0">
