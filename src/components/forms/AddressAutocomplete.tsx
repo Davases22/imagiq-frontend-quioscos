@@ -196,28 +196,52 @@ export function AddressAutocomplete({
    */
   useEffect(() => {
     if (isOpen && inputRef.current && isMounted) {
+      let anterior = '';
       const updatePosition = () => {
         const rect = inputRef.current?.getBoundingClientRect();
-        if (rect) {
-          // Usar solo getBoundingClientRect() sin scrollY/scrollX
-          // porque el dropdown usa position: fixed y se posiciona relativo al viewport
-          setDropdownPosition({
-            top: rect.bottom,
-            left: rect.left,
-            width: rect.width
-          });
+        if (!rect) return;
+
+        // Alto visible real: con el teclado abierto, visualViewport es bastante
+        // menor que window.innerHeight.
+        const altoVisible = window.visualViewport?.height ?? window.innerHeight;
+        const espacioAbajo = altoVisible - rect.bottom;
+        const alto = dropdownRef.current?.offsetHeight ?? 240;
+        // Si abajo no cabe (teclado), se abre hacia arriba del campo.
+        const arriba = espacioAbajo < Math.min(alto, 160) && rect.top > espacioAbajo;
+
+        const pos = {
+          top: arriba ? Math.max(8, rect.top - alto - 4) : rect.bottom + 4,
+          left: rect.left,
+          width: rect.width
+        };
+        const clave = `${Math.round(pos.top)}|${Math.round(pos.left)}|${Math.round(pos.width)}`;
+        if (clave !== anterior) {
+          anterior = clave;
+          setDropdownPosition(pos);
         }
       };
 
-      updatePosition();
+      // iOS no dispara scroll/resize de forma fiable al abrir el teclado: mientras
+      // la lista está abierta se recalcula en cada frame (dura solo unos segundos).
+      let frame = 0;
+      const bucle = () => {
+        updatePosition();
+        frame = window.requestAnimationFrame(bucle);
+      };
+      bucle();
 
       // Actualizar posición al hacer scroll o resize
       window.addEventListener('scroll', updatePosition, true);
       window.addEventListener('resize', updatePosition);
+      window.visualViewport?.addEventListener('resize', updatePosition);
+      window.visualViewport?.addEventListener('scroll', updatePosition);
 
       return () => {
+        window.cancelAnimationFrame(frame);
         window.removeEventListener('scroll', updatePosition, true);
         window.removeEventListener('resize', updatePosition);
+        window.visualViewport?.removeEventListener('resize', updatePosition);
+        window.visualViewport?.removeEventListener('scroll', updatePosition);
       };
     }
   }, [isOpen, isMounted]);
@@ -296,8 +320,9 @@ export function AddressAutocomplete({
     }
   );
 
+  // top ya viene calculado (incluye el desplazamiento y el caso "hacia arriba")
   const dropdownStyles = {
-    top: `${dropdownPosition.top + 4}px`,
+    top: `${dropdownPosition.top}px`,
     left: `${dropdownPosition.left}px`,
     width: `${dropdownPosition.width}px`
   };
