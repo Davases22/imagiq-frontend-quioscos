@@ -365,7 +365,7 @@ export const AddressSelector: React.FC<AddressSelectorProps> = ({
             </div>
 
             {/* Formulario con scroll independiente */}
-            <div className="max-h-[calc(100vh-150px)] overflow-y-auto pr-2">
+            <div className="max-h-[calc(100vh-150px)] supports-[height:100dvh]:max-h-[calc(100dvh-150px)] overflow-y-auto pr-2">
               <AddNewAddressForm
                 onAddressAdded={handleAddressAdded}
                 onCancel={kioskMode ? undefined : () => setShowAddForm(false)}

@@ -405,7 +405,7 @@ export const StoreSelector: React.FC<StoreSelectorProps> = ({
 
         {/* Modal para agregar dirección - usando Portal para renderizar fuera del componente */}
         {showAddAddressModal && isMounted && createPortal(
-          <div className="fixed inset-0 z-[100001] flex items-center justify-center p-4 bg-black/50">
+          <div className="fixed inset-0 z-[100001] flex items-center justify-center p-4 bg-black/60 backdrop-blur-[2px]">
             <button
               type="button"
               aria-label="Cerrar modal"
@@ -419,7 +419,7 @@ export const StoreSelector: React.FC<StoreSelectorProps> = ({
             />
             <div
               aria-labelledby="modal-title"
-              className="relative bg-white rounded-lg shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col"
+              className="relative bg-white rounded-lg shadow-2xl w-full max-w-3xl max-h-[85vh] supports-[height:100dvh]:max-h-[85dvh] flex flex-col"
             >
               <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 flex-shrink-0">
                 <h2 id="modal-title" className="text-xl font-semibold text-gray-900">
