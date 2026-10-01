@@ -1628,6 +1628,8 @@ export default function Step7({ onBack }: Step7Props) {
       }
     }
 
+    const esFacturaEmpresa = billingData.type === "juridica";
+
     // Preparar información de facturación de forma segura
     const informacion_facturacion = {
       direccion_id: billingData.direccion?.id ?? "",
@@ -1637,10 +1639,21 @@ export default function Step7({ onBack }: Step7Props) {
       tipo_documento: billingData.tipoDocumento ?? "",
       telefono: billingData.telefono ?? "",
       type: billingData.type ?? "",
-      nit: billingData.nit,
-      razon_social: billingData.razonSocial,
-      representante_legal:
-        billingData.nombreRepresentante || billingData.razonSocial,
+      // El formulario conserva la razon social, el NIT y el representante de una
+      // compra anterior aunque el cliente cambie a Persona Natural, asi que la
+      // orden quedaba marcada como natural pero cargando los datos de una
+      // empresa. Cuando no se factura a una empresa estos tres campos viajan
+      // vacios.
+      //
+      // El nombre del representante legal no lo pide ningun campo del
+      // formulario, asi que su `||` caia siempre en la razon social y Novasoft
+      // recibia el nombre de la empresa donde espera una persona: ahora va el
+      // nombre y apellido del contacto.
+      nit: esFacturaEmpresa ? billingData.nit : "",
+      razon_social: esFacturaEmpresa ? billingData.razonSocial : "",
+      representante_legal: esFacturaEmpresa
+        ? billingData.nombreRepresentante || billingData.nombre
+        : "",
     };
 
     try {
