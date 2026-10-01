@@ -893,14 +893,22 @@ export default function Step6({ onBack, onContinue }: Step6Props) {
                       <input
                         id="nit"
                         type="text"
+                        inputMode="numeric"
                         value={billingData.nit || ""}
+                        // Solo digitos: la pasarela no espera el digito de
+                        // verificacion ni separadores, y dejarlos escribir
+                        // obligaba a limpiarlos despues con el riesgo de
+                        // adivinar mal cual sobra.
                         onChange={(e) =>
-                          handleInputChange("nit", e.target.value)
+                          handleInputChange(
+                            "nit",
+                            e.target.value.replace(/\D/g, "")
+                          )
                         }
                         className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black ${
                           errors.nit ? "border-red-500" : "border-gray-300"
                         }`}
-                        placeholder="900123456-7"
+                        placeholder="900123456"
                       />
                       {errors.nit && (
                         <p className="text-red-500 text-xs mt-1">

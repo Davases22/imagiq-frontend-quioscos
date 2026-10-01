@@ -522,6 +522,8 @@ export function useCheckoutLogic() {
         nombreRepresentante?: string;
       }>("checkout-billing-data", {});
 
+      const esFacturaEmpresa = billing?.type === "juridica";
+
       const informacion_facturacion = {
         direccion_id: billing?.direccion?.id ?? direction?.id ?? "",
         email: billing?.email ?? "",
@@ -530,10 +532,21 @@ export function useCheckoutLogic() {
         tipo_documento: billing?.tipoDocumento ?? "",
         telefono: billing?.telefono ?? "",
         type: billing?.type ?? "",
-        nit: billing?.nit,
-        razon_social: billing?.razonSocial,
-        representante_legal:
-          billing?.nombreRepresentante || billing?.razonSocial,
+        // El formulario conserva la razon social, el NIT y el representante de una
+        // compra anterior aunque el cliente cambie a Persona Natural, asi que la
+        // orden quedaba marcada como natural pero cargando los datos de una
+        // empresa. Cuando no se factura a una empresa estos tres campos viajan
+        // vacios.
+        //
+        // El nombre del representante legal no lo pide ningun campo del
+        // formulario, asi que su `||` caia siempre en la razon social y Novasoft
+        // recibia el nombre de la empresa donde espera una persona: ahora va el
+        // nombre y apellido del contacto.
+        nit: esFacturaEmpresa ? billing?.nit : "",
+        razon_social: esFacturaEmpresa ? billing?.razonSocial : "",
+        representante_legal: esFacturaEmpresa
+          ? billing?.nombreRepresentante || billing?.nombre
+          : "",
       };
       let res;
 
