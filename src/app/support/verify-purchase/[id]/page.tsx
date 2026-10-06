@@ -61,9 +61,15 @@ export default function VerifySupportPurchase(
 
       if (data?.status === 200 || data?.status === "APPROVED") {
         console.log(
-          "✅ [VERIFY-SUPPORT] Pago aprobado, redirigiendo a soporte..."
+          "✅ [VERIFY-SUPPORT] Pago aprobado, mostrando pantalla de exito..."
         );
-        router.push(target("APPROVED"));
+        // Antes volvia al inicio de soporte con un aviso diminuto en una
+        // esquina. Despues de pagar una reparacion de varios cientos de miles
+        // el cliente necesita una confirmacion que se vea: la pantalla ya
+        // existia en /support/success-checkout y no la usaba nadie.
+        router.push(
+          `/support/success-checkout?orderId=${encodeURIComponent(orderId)}`
+        );
       } else if (data?.status === "PENDING") {
         console.log(
           "⏳ [VERIFY-SUPPORT] Pago pendiente. Redirigiendo a soporte para estado pendiente..."
@@ -92,6 +98,10 @@ export default function VerifySupportPurchase(
       <LogoReloadAnimation
         open={isLoading}
         onFinish={orderId ? verifySupportOrder : undefined}
+        // El texto por defecto es el del carrito ("Procesando tu compra"), que
+        // aqui no aplica: el cliente no esta comprando nada, esta pagando el
+        // arreglo de un equipo que ya es suyo.
+        text="Verificando tu pago"
       />
     </div>
   );
